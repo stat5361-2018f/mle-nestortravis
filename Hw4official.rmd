@@ -1,0 +1,149 @@
+---
+title: Homework 4
+author: Travis Nestor
+output: pdf_document 
+---
+  
+# 3.3.2
+
+Given $$f(x; \theta) = \frac {1 - cos(x - \theta)} {2 \pi} , 0 \leq x \leq 2\pi, \theta \in (-\pi,\pi)$$
+and random distribution
+```{R}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96, 2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+```       
+3.3.2.1) Find Log likelihood of $\theta$ based on sample and plot between $-\pi$ and $\pi$
+
+$$L(\theta) =  \Pi_{i=1} ^n (\frac {1 - cos(x_i - \theta)} {2\pi})$$
+
+$$l(\theta) = log[\Pi_{i=1} ^n (\frac {1 - cos(x_i - \theta)} {2\pi})]$$
+$$l(\theta) = log \Pi_{i=1}^n ([1 - cos(x_i - \theta)]) - log[(2\pi)^n]$$ 
+```{R}
+
+
+llk.theta <- function(x,theta){
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96, 2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+ log(prod((1 - cos(x - theta))/ (2*pi)))
+}
+
+theta.rpl <- seq(-pi, pi, 1e-3)     #Create large number of theta values to test 
+
+llk.yvalue <- sapply(theta.rpl, FUN=function(theta.rpl) llk.theta(x, theta.rpl))
+plot(theta.rpl, llk.yvalue, type = "l")
+```
+
+3.3.2.2) Find method of moments estimator of $\theta$, i.e. find $\theta$ where $E[X|\theta] = X_n$, where $X_n$ is the sample mean.  
+
+First find $E[X|\theta]$
+
+$$E[X|\theta] = \sum_{x} x_i \frac{1 - cos(x_i - \theta)} {2\pi}$$
+```{R}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96, 2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+mean(x)
+```
+$$\Rightarrow \sum_{x} x_i \frac{1 - cos(x_i - \theta)} {2\pi} = 3.236842$$
+$$ = \sum_{x} x_i (1 - cos(x_i - \theta)) = 3.236842 * 2\pi$$
+$$ = \sum_{x} x_i - \sum_{x} x_i * cos(x_i - \theta)$$
+$$ = 61.5 - \sum_{x} x_i* cos(x_i - \theta)$$
+$$ = \sum_{x} x_i* cos(x_i - \theta) = 41.16232$$
+```{R}
+exval <- function(theta) {
+
+    x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96, 2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+    
+sum(x*(1 - cos(x - theta))) - 41.16232 
+}
+uniroot(exval, lower = -10, upper = 10)$root
+```
+
+$$\Rightarrow \theta _n = 2.755224$$
+3.3.2.3) Find MLE using Newton_raphson
+
+$$l(\theta) = \sum (ln (1 - cos(x_i - \theta))) - ln(2\pi)$$
+```{R}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96, 2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+llk.nr <- function(theta) {
+    sum(log(1 - cos(x - theta))) - log(2*pi)
+}
+
+llk.nrprime <- function(theta) {
+  sum((sin(x - theta)) / (1 - cos(x - theta)))
+}
+
+llk.nrprime2 <- function(theta) {
+    sum(
+    (cos(x - theta) * (1 - cos(x - theta)) - (sin(x - theta))^2 ) 
+    / (1 - cos(x - theta))^2 
+    ) 
+ 
+}
+
+newton <- function(llkprime, llkprime2, theta0, n = 1000, tol = 1e-7){
+  k <- n  
+  for (i in 1:n) {
+  theta1 <- theta0 - (llkprime(theta0) / llkprime2(theta0))
+  k[i] <- theta1
+  if (abs(theta1 - theta0) < tol){
+    root.nr <- tail(k, n=1)
+    res <- list(root.nr)
+    return(res)
+  }
+     theta0 <- theta1
+  }
+  if (i==n)
+  return(c(theta0= i, root = theta1))
+  
+}
+
+newton(llk.nrprime, llk.nrprime2, theta0=2.755)
+```
+
+$$\Rightarrow \theta _{MLE} = 2.53$$
+3.3.2.4)
+```{R}
+newton(llk.nrprime, llk.nrprime2, theta0=-2.7)
+newton(llk.nrprime, llk.nrprime2, theta0=2.7)
+```
+3.3.2.5)
+
+```{R}
+theta.nr <- seq(-3.14,3.14,.0314)
+newton.nr <- function(y){
+  newton(llk.nrprime, llk.nrprime2, theta0=y, tol=1e-4, n=1000)
+}
+sapply(theta.nr, newton.nr)
+plot(theta.nr, sapply(theta.nr,newton.nr), type = "s", ylab=expression(theta(t)), xlab = expression(theta(0)))
+```
+
+
+#3.3.3.1) 
+```{R}
+beetles <- data.frame(
+    days    = c(0,  8,  28,  41,  63,  69,   97, 117,  135,  154),
+    beetles = c(2, 47, 192, 256, 768, 896, 1120, 896, 1184, 1024))
+
+
+
+n0 <- 2
+nt     <- function(x) {
+    beetles$beetles - (2 * x[1]) / (2 + (x[1] - 2) * exp(-x[2]*beetles$days))
+}
+
+library(pracma)
+
+gaussNewton(c(100, 1), nt)
+
+
+sumse <- function(r, k){
+  n0 <- 2
+  sum(
+    (beetles$beetles - (n0 * k) / (n0 + (k - n0) * exp(-r * beetles$days)))^2
+  )
+}
+
+r <- seq(0, 1, .01) 
+k <- seq(0, 1500, 15)
+
+z <- outer(r, k, Vectorize(sumse))
+contour(k, r, z, xlab="k", ylab="r")
+```
+
